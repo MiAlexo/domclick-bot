@@ -205,11 +205,24 @@ async def toggle_auto(message: types.Message):
 
 @dp.message(lambda m: m.text == "🔍 Искать сейчас")
 async def search_now(message: types.Message):
-    await message.answer("🔍 Ищу объявления, подожди немного...")
     cfg = get_user_config(message.from_user.id) or {}
-    results = await parser.fetch(cfg)
+    region = cfg.get("region", "Московская область")
+    await message.answer(f"🔍 Ищу объявления в <b>{region}</b>...", parse_mode="HTML")
+    try:
+        results = await parser.fetch(cfg)
+    except Exception as e:
+        await message.answer(f"⚠️ Ошибка при запросе: <code>{e}</code>", parse_mode="HTML", reply_markup=main_menu())
+        return
     if not results:
-        await message.answer("😔 По твоим фильтрам ничего не нашлось. Попробуй расширить параметры.", reply_markup=main_menu())
+        await message.answer(
+            "😔 По твоим фильтрам ничего не нашлось.\n\n"
+            "Попробуй:\n"
+            "• Расширить диапазон цены\n"
+            "• Убрать ограничения по площади\n"
+            "• Изменить регион (например: <code>Москва</code> или <code>Подмосковье</code>)",
+            parse_mode="HTML",
+            reply_markup=main_menu()
+        )
         return
     await message.answer(f"✅ Найдено: <b>{len(results)}</b> объявлений. Показываю первые 5.", parse_mode="HTML")
     for item in results[:5]:
